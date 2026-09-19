@@ -59,10 +59,16 @@ int main(int argc,char** argv) try {
     const nlohmann::json manifest{{"schema",1},{"product","sempervirens-windows-x64"},{"channel","stable"},
         {"version","0.1.0.1"},{"serial",1},{"minimumUpdaterProtocol",1},{"publishedUtc","2026-09-19T00:00:00Z"},
         {"outputSha256",new_hash},{"outputSize",fresh.size()},{"packages",nlohmann::json::array({{
-            {"kind","full"},{"urls",nlohmann::json::array({"https://github.com/XintingleiTeam/sempervirens/releases/download/v0.1.0.1/SempervirensApp.exe","https://xintinglei.cn/api/sempervirens/update/releases/0.1.0.1/SempervirensApp.exe"})},
+            {"kind","full"},{"urls",nlohmann::json::array({"https://github.com/XintingleiTeam/sempervirens/releases/download/v0.1.0.1/SempervirensApp.exe","https://api.xintinglei.cn/api/sempervirens/update/releases/0.1.0.1/SempervirensApp.exe"})},
             {"size",fresh.size()},{"sha256",new_hash}}})}};
     const auto parsed=update::parse_manifest(manifest.dump(),"stable");
     if (parsed.packages.size()!=1 || parsed.packages[0].urls.size()!=2) return 6;
+    auto rejected_manifest=manifest;
+    rejected_manifest["packages"][0]["urls"][1]="https://xintinglei.cn/api/sempervirens/update/releases/0.1.0.1/SempervirensApp.exe";
+    bool rejected_old_domain=false;
+    try { update::parse_manifest(rejected_manifest.dump(),"stable"); }
+    catch (...) { rejected_old_domain=true; }
+    if (!rejected_old_domain) return 7;
     std::error_code ignored; fs::remove_all(root,ignored);
     std::cout << "Internal update delta and manifest tests passed.\n"; return 0;
 } catch (const std::exception& error) { std::cerr<<error.what()<<'\n'; return 1; }

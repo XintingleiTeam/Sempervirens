@@ -95,8 +95,7 @@ bool allowed_update_url(std::wstring_view value) {
     if (!WinHttpCrackUrl(copy.c_str(), 0, 0, &parts) || parts.nScheme != INTERNET_SCHEME_HTTPS)
         return false;
     const std::wstring host(parts.lpszHostName, parts.dwHostNameLength);
-    return _wcsicmp(host.c_str(), L"xintinglei.cn") == 0 ||
-           _wcsicmp(host.c_str(), L"updates.xintinglei.cn") == 0 ||
+    return _wcsicmp(host.c_str(), L"api.xintinglei.cn") == 0 ||
            _wcsicmp(host.c_str(), L"github.com") == 0 ||
            _wcsicmp(host.c_str(), L"release-assets.githubusercontent.com") == 0 ||
            _wcsicmp(host.c_str(), L"objects.githubusercontent.com") == 0;
