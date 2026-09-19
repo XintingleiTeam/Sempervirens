@@ -1,0 +1,35 @@
+#include <winver.h>
+#pragma code_page(65001)
+
+1 ICON "sempervirens.ico"
+1 24 "app.manifest"
+101 RCDATA "profiles/vanilla.json"
+102 RCDATA "profiles/minecraft.json"
+103 RCDATA "assets/branding/a2-icon.png"
+104 RCDATA "assets/branding/wordmark-source.png"
+
+1 VERSIONINFO
+FILEVERSION 0,1,0,0
+PRODUCTVERSION 0,1,0,0
+FILEFLAGSMASK 0x3fL
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "CompanyName", "XintingleiTeam"
+            VALUE "FileDescription", "Sempervirens"
+            VALUE "FileVersion", "0.1.0.0"
+            VALUE "InternalName", "Sempervirens"
+            VALUE "OriginalFilename", "Sempervirens.exe"
+            VALUE "ProductName", "Sempervirens"
+            VALUE "ProductVersion", "0.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0804, 1200
+    END
+END

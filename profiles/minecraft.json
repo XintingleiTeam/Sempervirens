@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "name": "Sempervirens-Minecraft 原版",
+  "description": "适用于原版 Minecraft 实例，只迁移玩家设置、服务器、截图和单人世界。",
+  "rules": [
+    {
+      "id": "minecraft_bindings",
+      "group": "个人设置",
+      "name": "键位设置",
+      "description": "只带走按键设置，不动目标里的其他选项。",
+      "kind": "builtin",
+      "builtin": "options",
+      "category": "bindings",
+      "source": "options.txt",
+      "target": "options.txt",
+      "defaultSelected": true,
+      "risk": "safe"
+    },
+    {
+      "id": "minecraft_audio",
+      "group": "个人设置",
+      "name": "音频设置",
+      "description": "带走音量和各类声音的设置。",
+      "kind": "builtin",
+      "builtin": "options",
+      "category": "audio",
+      "source": "options.txt",
+      "target": "options.txt",
+      "defaultSelected": true,
+      "risk": "safe"
+    },
+    {
+      "id": "minecraft_video",
+      "group": "个人设置",
+      "name": "画面设置",
+      "description": "带走画面、视距和界面偏好；不同电脑上的效果可能不同。",
+      "kind": "builtin",
+      "builtin": "options",
+      "category": "video",
+      "source": "options.txt",
+      "target": "options.txt",
+      "defaultSelected": false,
+      "risk": "warning"
+    },
+    {
+      "id": "minecraft_servers",
+      "group": "服务器列表",
+      "name": "服务器列表",
+      "description": "按服务器逐项选择；已有相同地址时会保留目标中的名称。",
+      "kind": "builtin",
+      "builtin": "servers",
+      "source": "servers.dat",
+      "target": "servers.dat",
+      "defaultSelected": true,
+      "risk": "safe"
+    },
+    {
+      "id": "minecraft_screenshots",
+      "group": "截图",
+      "name": "全部截图",
+      "description": "将截图文件夹中的图片一并带走。",
+      "kind": "builtin",
+      "builtin": "screenshots",
+      "source": "screenshots",
+      "target": "screenshots",
+      "defaultSelected": true,
+      "risk": "safe"
+    },
+    {
+      "id": "minecraft_worlds",
+      "group": "单人世界",
+      "name": "单人世界",
+      "description": "按世界逐项选择；会显示游戏内名称和文件夹名。",
+      "kind": "builtin",
+      "builtin": "worlds",
+      "source": "saves",
+      "target": "saves",
+      "defaultSelected": false,
+      "risk": "warning"
+    }
+  ]
+}

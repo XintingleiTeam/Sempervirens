@@ -1,0 +1,10 @@
+/.tools/
+/build/
+/dist/
+/artifacts/
+/.zig-cache/
+/.private/
+/tests/parity-reference/bin/
+/tests/parity-reference/obj/
+*.obj
+*.pdb

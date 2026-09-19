@@ -1,0 +1,123 @@
+name: Release Sempervirens
+
+on:
+  push:
+    tags: ['v*.*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vX.Y.Z.W tag to publish
+        required: true
+        default: v0.1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+    env:
+      SEMPERVIRENS_UPDATE_SIGNING_KEY_BASE64: ${{ secrets.SEMPERVIRENS_UPDATE_SIGNING_KEY_BASE64 }}
+      WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+      WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Validate release version
+        shell: pwsh
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
+          if ($tag -notmatch '^v(\d+\.\d+\.\d+\.\d+)$') { throw 'Release tag must be vX.Y.Z.W.' }
+          $version = $tag.Substring(1)
+          $source = Get-Content -Raw src/update.hpp
+          if ($source -notmatch ('current_version\s*=\s*"' + [regex]::Escape($version) + '"')) { throw 'Tag and embedded app version differ.' }
+          "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install Zig and Inno Setup
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP zig.zip
+          Invoke-WebRequest 'https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip' -OutFile $archive
+          Expand-Archive $archive -DestinationPath .tools
+          choco install innosetup --no-progress -y
+
+      - name: Build and test
+        shell: cmd
+        run: Build.cmd
+
+      - name: Authenticode-sign binaries when configured
+        if: env.WINDOWS_SIGNING_PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP signing.pfx
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_SIGNING_PFX_BASE64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe was not found.' }
+          @('build\release\Sempervirens.exe','build\release\SempervirensUpdater.exe',
+            "build\release\versions\$env:RELEASE_VERSION\SempervirensApp.exe") | ForEach-Object {
+              & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:WINDOWS_SIGNING_PFX_PASSWORD $_
+              if ($LASTEXITCODE) { throw "Signing failed for $_" }
+          }
+          Remove-Item -LiteralPath $pfx -Force
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc installer\Sempervirens.iss
+          if ($LASTEXITCODE) { throw 'Inno Setup failed.' }
+
+      - name: Sign installer when configured
+        if: env.WINDOWS_SIGNING_PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP signing.pfx
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_SIGNING_PFX_BASE64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse | Sort-Object FullName -Descending | Select-Object -First 1
+          & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:WINDOWS_SIGNING_PFX_PASSWORD "artifacts\release\Sempervirens-$env:RELEASE_VERSION-Setup.exe"
+          if ($LASTEXITCODE) { throw 'Installer signing failed.' }
+          Remove-Item -LiteralPath $pfx -Force
+
+      - name: Download previous payload for delta
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $previous = gh release list --repo '${{ github.repository }}' --exclude-drafts --exclude-pre-releases --limit 20 --json tagName | ConvertFrom-Json | Where-Object { $_.tagName -ne $env:RELEASE_TAG } | Select-Object -First 1
+          if ($previous -and $previous.tagName -match '^v(\d+\.\d+\.\d+\.\d+)$') {
+            New-Item -ItemType Directory -Force artifacts\previous | Out-Null
+            gh release download $previous.tagName --repo '${{ github.repository }}' --pattern SempervirensApp.exe --dir artifacts\previous
+            "PREVIOUS_VERSION=$($Matches[1])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            "PREVIOUS_APP=$((Resolve-Path artifacts\previous\SempervirensApp.exe).Path)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: Build signed update manifest and delta
+        shell: pwsh
+        run: |
+          if (-not $env:SEMPERVIRENS_UPDATE_SIGNING_KEY_BASE64) { throw 'The update signing secret is required.' }
+          $arguments = @{ CurrentApp="build\release\versions\$env:RELEASE_VERSION\SempervirensApp.exe"; Version=$env:RELEASE_VERSION; OutputRoot='artifacts\update-site'; PythonPath=(Get-Command python).Source }
+          if ($env:PREVIOUS_APP) { $arguments.PreviousApp=$env:PREVIOUS_APP; $arguments.PreviousVersion=$env:PREVIOUS_VERSION }
+          .\tools\Publish-Update.ps1 @arguments
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $release = "artifacts\update-site\releases\$env:RELEASE_VERSION"
+          $assets = @("artifacts\release\Sempervirens-$env:RELEASE_VERSION-Setup.exe", 'artifacts\update-site\channels\stable.json', 'artifacts\update-site\channels\stable.json.sig') + @(Get-ChildItem $release -File | ForEach-Object FullName)
+          gh release create $env:RELEASE_TAG $assets --repo '${{ github.repository }}' --title "Sempervirens $env:RELEASE_VERSION" --generate-notes --verify-tag
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sempervirens-${{ env.RELEASE_VERSION }}
+          path: |
+            artifacts/release/*.exe
+            artifacts/update-site/**
+          if-no-files-found: error

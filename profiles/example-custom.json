@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "Sempervirens 外部规则示例",
+  "description": "整合包作者可以复制此文件并按自己的数据结构修改。",
+  "rules": [
+    { "id": "example-file", "group": "示例", "name": "单个文件", "description": "复制一个文件。", "kind": "file", "source": "example/source.json", "target": "example/target.json", "defaultSelected": false, "risk": "safe" },
+    { "id": "example-directory", "group": "示例", "name": "整个目录", "description": "递归复制目录内容。", "kind": "directory", "source": "example/data", "target": "example/data", "recursive": true, "defaultSelected": false, "risk": "warning" },
+    { "id": "example-glob", "group": "示例", "name": "通配文件", "description": "匹配受控 glob 路径，目标目录保留匹配后的相对层级。", "kind": "glob", "source": "example/config/*.json", "target": "example/config", "recursive": false, "defaultSelected": false, "risk": "safe" }
+  ]
+}
