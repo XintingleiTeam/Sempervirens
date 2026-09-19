@@ -7,7 +7,7 @@ param(
     [string]$Channel = 'stable',
     [string[]]$AssetUrlRoots = @(
         'https://github.com/XintingleiTeam/sempervirens/releases/download/v{version}',
-        'https://api.xintinglei.cn/api/sempervirens/update/releases/{version}'
+        'https://api.update.xintinglei.cn/releases/{version}'
     ),
     [string]$OutputRoot = '',
     [string]$KeyPath = '',

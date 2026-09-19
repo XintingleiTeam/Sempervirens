@@ -34,8 +34,8 @@ struct ChannelSource {
 inline const std::array<ChannelSource, 2> stable_sources{{
     {L"https://github.com/XintingleiTeam/sempervirens/releases/latest/download/stable.json",
      L"https://github.com/XintingleiTeam/sempervirens/releases/latest/download/stable.json.sig"},
-    {L"https://api.xintinglei.cn/api/sempervirens/update/stable.json",
-     L"https://api.xintinglei.cn/api/sempervirens/update/stable.json.sig"}
+    {L"https://api.update.xintinglei.cn/stable.json",
+     L"https://api.update.xintinglei.cn/stable.json.sig"}
 }};
 
 struct Manifest {
